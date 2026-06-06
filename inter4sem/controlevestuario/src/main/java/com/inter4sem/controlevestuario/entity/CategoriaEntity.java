@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 public class CategoriaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Integer id;
     private String nome;
 
 }

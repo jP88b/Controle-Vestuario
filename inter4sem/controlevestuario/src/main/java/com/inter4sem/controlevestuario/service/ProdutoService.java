@@ -28,7 +28,7 @@ public class ProdutoService {
             ProdutoEntity ProdutoAtualizada = ProdutoExistente.get();
             ProdutoAtualizada.setNome(Produto.getNome()); // Atualiza os campos necessários
             ProdutoAtualizada.setDescricao(Produto.getDescricao()); // Atualiza os campos necessários
-            ProdutoAtualizada.setPreco(Produto.getPreco()); // Atualiza os campos necessários
+            ProdutoAtualizada.setPrecoVenda(Produto.getPrecoVenda()); // Atualiza os campos necessários
             ProdutoAtualizada.setQuantidade(Produto.getQuantidade()); // Atualiza os campos necessários
             return ProdutoRepository.save(ProdutoAtualizada); // Salva o Produto atualizado
         } else {

@@ -22,11 +22,11 @@ import lombok.NoArgsConstructor;
 public class ProdutoEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Integer id;
     private String nome;
     private String descricao;
-    private double preco;
-    private int quantidade;
+    private double precoVenda;
+    private Integer quantidade;
 
     @ManyToOne
     @JoinColumn(name = "idcategoria", referencedColumnName = "id")

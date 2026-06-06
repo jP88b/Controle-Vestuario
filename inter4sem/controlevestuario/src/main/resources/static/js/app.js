@@ -88,6 +88,137 @@ async function excluirCategoria(id) {
 }
 
 // ========================================================
+// CONTROLE DE CATEGORIAS (ALINHADO COM SEU HTML)
+// ========================================================
+
+// Seleção dos elementos do seu HTML
+const btnNovaCategoria = document.getElementById("add-category-btn");
+const modalCategoria = document.getElementById("category-modal");
+const formCategoria = document.getElementById("category-form");
+const inputNomeCategoria = document.getElementById("categoryNameInput");
+const inputIdCategoria = document.getElementById("categoryIdInput");
+
+// 1. Função para carregar e renderizar as categorias na tabela
+async function carregarTelaCategorias() {
+    const tabelaBody = document.getElementById("categories-table-body");
+    if (!tabelaBody) return;
+
+    tabelaBody.innerHTML = "";
+    const categorias = await listarCategorias();
+
+    if (categorias && Array.isArray(categorias) && categorias.length > 0) {
+        categorias.forEach(cat => {
+            const tr = document.createElement("tr");
+            tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors text-slate-600 dark:text-slate-300";
+            
+            tr.innerHTML = `
+                <td class="px-6 py-4 font-medium text-slate-800 dark:text-white">${cat.nome || '-'}</td>
+                <td class="px-6 py-4 text-center">
+                    <div class="flex justify-center gap-3">
+                        <button class="text-primary-600 hover:text-primary-700 font-medium hover:underline" onclick="prepararEdicaoCategoria(${cat.id}, '${cat.nome}')">Editar</button>
+                        <button class="text-red-500 hover:text-red-600 font-medium hover:underline" onclick="removerCategoriaFluxo(${cat.id})">Excluir</button>
+                    </div>
+                </td>
+            `;
+            tabelaBody.appendChild(tr);
+        });
+    } else {
+        tabelaBody.innerHTML = `
+            <tr>
+                <td colspan="2" class="p-8 text-center text-slate-400 dark:text-slate-500">Nenhuma categoria encontrada no sistema.</td>
+            </tr>
+        `;
+    }
+}
+
+// 2. Evento para abrir o modal clicando em "Nova"
+if (btnNovaCategoria && modalCategoria) {
+    btnNovaCategoria.addEventListener("click", () => {
+        if (formCategoria) formCategoria.reset();
+        if (inputIdCategoria) inputIdCategoria.value = ""; 
+        
+        const tituloModal = modalCategoria.querySelector("h2");
+        if (tituloModal) tituloModal.textContent = "Nova Categoria";
+
+        modalCategoria.classList.remove("hidden");
+        modalCategoria.classList.add("flex"); // Garante que o flex do Tailwind centralize o modal
+    });
+}
+
+// 3. Fechar o modal (Botão Cancelar)
+if (modalCategoria) {
+    const btnCancelar = modalCategoria.querySelector(".close-modal");
+    if (btnCancelar) {
+        btnCancelar.addEventListener("click", () => {
+            modalCategoria.classList.add("hidden");
+            modalCategoria.classList.remove("flex");
+        });
+    }
+}
+
+// 4. Enviar o formulário (Salvar / Editar no Spring Boot)
+if (formCategoria) {
+    formCategoria.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const id = inputIdCategoria?.value;
+        const dadosCategoria = {
+            nome: inputNomeCategoria.value.trim()
+        };
+
+        let resultado = null;
+
+        if (id) {
+            // Se tem ID salvos no input oculto, faz o PUT
+            resultado = await editarCategoria(id, dadosCategoria);
+        } else {
+            // Se não tem ID, faz o POST
+            resultado = await incluirCategoria(dadosCategoria);
+        }
+
+        if (resultado) {
+            modalCategoria.classList.add("hidden");
+            modalCategoria.classList.remove("flex");
+            formCategoria.reset();
+            
+            // Atualiza a listagem automaticamente
+            setTimeout(() => {
+                carregarTelaCategorias();
+            }, 300);
+        } else {
+            alert("Erro ao salvar categoria. Verifique se o servidor está ativo.");
+        }
+    });
+}
+
+// 5. Funções globais de ação na tabela (Editar e Excluir)
+window.prepararEdicaoCategoria = function(id, nome) {
+    if (inputIdCategoria) inputIdCategoria.value = id;
+    if (inputNomeCategoria) inputNomeCategoria.value = nome;
+    
+    if (modalCategoria) {
+        const tituloModal = modalCategoria.querySelector("h2");
+        if (tituloModal) tituloModal.textContent = "Editar Categoria";
+        
+        modalCategoria.classList.remove("hidden");
+        modalCategoria.classList.add("flex");
+    }
+};
+
+window.removerCategoriaFluxo = async function(id) {
+    if (confirm("Deseja realmente excluir esta categoria?")) {
+        const sucesso = await excluirCategoria(id);
+        if (sucesso) {
+            carregarTelaCategorias();
+        } else {
+            alert("Erro ao excluir. Certifique-se de que não há produtos usando esta categoria.");
+        }
+    }
+};
+
+
+
+// ========================================================
 // CONTROLE DO MODAL, SUBMIT E LISTAGEM (TOTALMENTE INTEGRADO)
 // ========================================================
 document.addEventListener("DOMContentLoaded", () => {
@@ -139,44 +270,58 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // 5. Envio do Formulário Corrigido (Apenas com os campos da FornecedorEntity)
+    // 5. Envio do Formulário Trado e Monitorado
     if (formFornecedor) {
+        console.log("Formulário de fornecedores encontrado com sucesso no DOM!");
+
         formFornecedor.addEventListener("submit", async (e) => {
-            e.preventDefault();
+            // Impede a página de recarregar
+            e.preventDefault(); 
+            console.log("Botão Salvar clicado! Evento de Submit disparado.");
 
             const idFornecedor = document.getElementById("supplierId").value;
 
-            // Coleta apenas o que existe no seu HTML e na classe Java
+            // Captura os dados dos inputs de texto de forma segura
             const dadosFornecedor = {
                 nome: document.getElementById("supplierName").value.trim(),
-                cnpj: document.getElementById("supplierCnpj").value.replace(/\D/g, '') || null, // Remove pontos/traços
+                cnpj: document.getElementById("supplierCnpj").value.replace(/\D/g, '') || null, 
                 telefone: document.getElementById("supplierPhone").value.trim() || null,
                 email: document.getElementById("supplierEmail").value.trim() || null
             };
 
+            console.log("Dados que serão enviados para o Spring Boot:", dadosFornecedor);
+
             try {
                 let resultado;
                 if (idFornecedor) {
-                    // Atualizar (PUT)
+                    console.log(`Modo Edição ativado para o ID: ${idFornecedor}. Chamando PUT...`);
                     resultado = await editarFornecedor(idFornecedor, dadosFornecedor);
                 } else {
-                    // Cadastrar (POST)
+                    console.log("Modo Cadastro ativado. Chamando POST...");
                     resultado = await incluirFornecedor(dadosFornecedor);
                 }
 
+                // O Spring Boot retornando os dados significa sucesso absoluto!
                 if (resultado) {
+                    console.log("Resposta positiva recebida da API:", resultado);
                     alert("Fornecedor salvo com sucesso!");
+                    
+                    // Esconde o modal e limpa a tela
                     modalFornecedor.classList.add("hidden");
                     formFornecedor.reset();
                     
-                    // Recarrega as linhas na tela para exibir o dado novo/alterado
+                    // Recarrega a tabela de dados
                     await renderizarTabelaFornecedores();
+                } else {
+                    console.warn("A API processou a requisição, mas o retorno veio vazio ou inválido.");
                 }
             } catch (error) {
-                console.error("Erro ao salvar fornecedor:", error);
-                alert("Erro ao salvar os dados. Verifique o console.");
+                console.error("Erro crítico na comunicação com a API:", error);
+                alert("Erro ao conectar com o servidor. Abra o console do navegador (F12) para ver os detalhes.");
             }
         });
+    } else {
+        console.error("ERRO CRÍTICO: O JavaScript não conseguiu encontrar o elemento com id='supplier-form' na página!");
     }
 
     // Inicializa a tabela buscando os dados assim que o sistema abre
@@ -186,40 +331,58 @@ document.addEventListener("DOMContentLoaded", () => {
 // ========================================================
 // ATUALIZAÇÃO DA TABELA EM TELA
 // ========================================================
+// ========================================================
+// ATUALIZAÇÃO DA TABELA EM TELA (CORRIGIDA PARA O SEU HTML)
+// ========================================================
 async function renderizarTabelaFornecedores() {
-    const tabelaBody = document.querySelector("table tbody");
-    if (!tabelaBody) return;
+    const tabelaBody = document.getElementById("suppliers-table-body");
+    
+    if (!tabelaBody) {
+        console.error("ERRO VISUAL: Não foi encontrado o elemento id='suppliers-table-body' na página.");
+        return;
+    }
 
-    // Executa a função GET que você já possui
     const fornecedores = await listarFornecedores();
-
     tabelaBody.innerHTML = "";
 
-    if (fornecedores && fornecedores.length > 0) {
+    if (fornecedores && Array.isArray(fornecedores) && fornecedores.length > 0) {
         fornecedores.forEach(forn => {
             const tr = document.createElement("tr");
-            tr.className = "border-b border-slate-100 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300";
+            tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors text-slate-600 dark:text-slate-300";
             
-            // Renderiza as colunas de acordo com o seu layout de Fornecedores
+            // Monta as 5 colunas exatas: Nome, CNPJ, Telefone, E-mail, Ações
             tr.innerHTML = `
-                <td class="p-4 font-medium text-slate-800 dark:text-white">${forn.nome}</td>
-                <td class="p-4">${forn.cnpj || '-'}</td>
-                <td class="p-4">${forn.telefone || '-'}</td>
-                <td class="p-4">${forn.email || '-'}</td>
-                <td class="p-4 flex gap-4">
-                    <button class="text-cyan-600 hover:underline font-medium" onclick="prepararEdicaoFornecedor(${forn.id})">Editar</button>
-                    <button class="text-red-500 hover:underline font-medium" onclick="removerFornecedorFluxo(${forn.id})">Excluir</button>
+                <td class="px-6 py-4 font-medium text-slate-800 dark:text-white">${forn.nome || '-'}</td>
+                <td class="px-6 py-4">${forn.cnpj ? maskCNPJString(forn.cnpj) : '-'}</td>
+                <td class="px-6 py-4">${forn.telefone || '-'}</td>
+                <td class="px-6 py-4">${forn.email || '-'}</td>
+                <td class="px-6 py-4 text-center">
+                    <div class="flex justify-center gap-3">
+                        <button class="text-cyan-600 hover:text-cyan-700 font-medium hover:underline" onclick="prepararEdicaoFornecedor(${forn.id})">Editar</button>
+                        <button class="text-red-500 hover:text-red-600 font-medium hover:underline" onclick="removerFornecedorFluxo(${forn.id})">Excluir</button>
+                    </div>
                 </td>
             `;
             tabelaBody.appendChild(tr);
         });
     } else {
+        // Colspan ajustado para 5 para ocupar toda a largura da nova tabela
         tabelaBody.innerHTML = `
             <tr>
-                <td colspan="5" class="p-8 text-center text-slate-400 dark:text-slate-500">Nenhum fornecedor encontrado.</td>
+                <td colspan="5" class="p-8 text-center text-slate-400 dark:text-slate-500">Nenhum fornecedor encontrado no sistema.</td>
             </tr>
         `;
     }
+}
+
+// Função utilitária para formatar o CNPJ que vem puro do banco de dados (ex: 12345678000199)
+function maskCNPJString(cnpj) {
+    if (!cnpj) return "-";
+    let value = cnpj.replace(/\D/g, "");
+    if (value.length === 14) {
+        return value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+    }
+    return value;
 }
 
 // ========================================================
@@ -548,10 +711,15 @@ const productForm = document.getElementById("product-form");
 
 // Abrir o modal ao clicar em "Novo Produto"
 if (addProductBtn && productModal) {
-    addProductBtn.addEventListener("click", () => {
-        productForm.reset(); // Limpa dados anteriores
-        document.getElementById("product-id").value = ""; // Garante que não há ID antigo
+    addProductBtn.addEventListener("click", async () => {
+        productForm.reset(); 
+        document.getElementById("product-id").value = ""; 
         document.getElementById("modal-title").innerText = "Cadastrar Novo Produto";
+        
+        // 🔥 CORREÇÃO 1: CARREGA AMBOS ANTES DO MODAL APARECER
+        await atualizarSelectFornecedores();
+        await atualizarSelectCategorias(); // Não pode esquecer este!
+
         productModal.classList.remove("hidden");
     });
 }
@@ -565,51 +733,68 @@ if (closeModalBtn) closeModalBtn.addEventListener("click", fecharModal);
 if (cancelModalBtn) cancelModalBtn.addEventListener("click", fecharModal);
 
 // Salvar / Enviar o Formulário
-// Salvar / Enviar o Formulário tratando os tipos de dados para o C#
 if (productForm) {
     productForm.addEventListener("submit", async (e) => {
         e.preventDefault();
 
         const id = document.getElementById("product-id").value;
         
-        // Captura os valores limpando e transformando explicitamente em números válidos
-        const qtyInput = document.getElementById("form-product-qty").value;
-        const priceInput = document.getElementById("form-product-price").value;
+        // Captura os inputs de texto/número de forma segura
+        const qtyInput = document.getElementById("form-product-qty")?.value || "0";
+        const priceInput = document.getElementById("form-product-price")?.value || "0";
 
+        // 🔥 CORREÇÃO: Captura os elementos inteiros primeiro para evitar ler '.value' de null
+        const selectCategoria = document.getElementById("productCategoryInput");
+        const selectFornecedor = document.getElementById("form-product-supplier");
+
+        // Extrai os valores apenas se os elementos existirem na árvore do HTML
+        const idCategoria = selectCategoria ? selectCategoria.value : "";
+        const idFornecedor = selectFornecedor ? selectFornecedor.value : "";
+
+        // Converte o preço tratando possíveis vírgulas para ponto flutuante puro
+        const precoLimpo = parseFloat(priceInput.replace(",", ".")) || 0.0;
+
+        // Montagem do objeto idêntico ao contrato aceito pelo seu Spring Boot
         const novoProduto = {
-            nome: document.getElementById("form-product-name").value.trim(),
+            nome: document.getElementById("form-product-name")?.value.trim() || "",
             quantidade: parseInt(qtyInput, 10) || 0,
-            preco: parseFloat(priceInput) || 0.0,
-            categoria: null,  // Adicionado para satisfazer a ProdutoEntity
-            fornecedor: null  // Adicionado para satisfazer a ProdutoEntity
+            
+            // Duplo mapeamento para garantir compatibilidade com sua Entity/DTO
+            preco: precoLimpo,
+            precoVenda: precoLimpo,  
+            
+            // Relacionamentos estruturados como sub-objetos para chaves estrangeiras JPA
+            categoria: idCategoria ? { id: parseInt(idCategoria, 10) } : null,
+            fornecedor: idFornecedor ? { id: parseInt(idFornecedor, 10) } : null
         };
 
-        // Validação preventiva antes de disparar o fetch
+        // Validações de segurança antes do Envio
         if (!novoProduto.nome) {
-            alert("Por favor, insira um nome válido para o produto.");
+            alert("Por favor, insira um nome para o produto.");
+            return;
+        }
+        if (!novoProduto.categoria || !novoProduto.categoria.id) {
+            alert("Por favor, selecione uma categoria para o produto.");
             return;
         }
 
         let sucesso = false;
 
         if (id) {
-            // Se tem ID, atualiza
             const resultado = await editarProduto(id, novoProduto);
             if (resultado) sucesso = true;
         } else {
-            // Se não tem ID, cria um novo
             const resultado = await incluirProduto(novoProduto);
             if (resultado) sucesso = true;
         }
 
         if (sucesso) {
             fecharModal();
-            // Dá um pequeno tempo para o banco processar e recarrega a tabela automaticamente
             setTimeout(() => {
                 carregarTelaProdutos();
             }, 300);
         } else {
-            alert("O servidor rejeitou os dados. Verifique os valores preenchidos ou o console.");
+            alert("O servidor rejeitou os dados (Erro 400). Verifique o console do Spring Boot para ver qual campo falhou.");
         }
     });
 }
@@ -735,6 +920,83 @@ async function excluirProduto(id) {
     } catch (error) {
         console.error("Erro no DELETE de Produtos:", error);
         return false;
+    }
+}
+
+// ========================================================
+// PREENCHIMENTO DINÂMICO DE CATEGORIAS NO PRODUTO
+// ========================================================
+
+// 1. Função que limpa e popula o <select> com as categorias do banco
+async function atualizarSelectCategorias() {
+    const selectCategoria = document.getElementById("productCategoryInput");
+    if (!selectCategoria) return;
+
+    // Mantém apenas a primeira opção padrão limpa
+    selectCategoria.innerHTML = '<option value="">Selecione uma categoria</option>';
+
+    try {
+        // Usa a sua função existente para listar as categorias do backend
+        const categorias = await listarCategorias();
+
+        if (categorias && Array.isArray(categorias)) {
+            categorias.forEach(cat => {
+                const option = document.createElement("option");
+                option.value = cat.id; // Envia o ID para o Spring Boot vincular o relacionamento
+                option.textContent = cat.nome; // Exibe o texto amigável para o usuário
+                selectCategoria.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error("Erro ao carregar categorias para o formulário de produtos:", error);
+    }
+}
+
+// 2. Vinculação com a abertura do Modal de Produtos
+// Procure o local onde você gerencia o clique do botão "Novo Produto" e inclua a chamada:
+const btnNovoProduto = document.getElementById("add-product-btn"); // mude para o ID correto do seu botão se for diferente
+const modalProduto = document.getElementById("product-modal"); // mude para o ID correto do seu modal se for diferente
+
+if (btnNovoProduto) {
+    btnNovoProduto.addEventListener("click", () => {
+        // Executa a busca de categorias atualizadas logo antes de exibir o modal na tela
+        atualizarSelectCategorias();
+
+        // O seu código original para abrir o modal de produto continua aqui embaixo:
+        if (modalProduto) {
+            modalProduto.classList.remove("hidden");
+            modalProduto.classList.add("flex");
+        }
+    });
+}
+
+async function atualizarSelectFornecedores() {
+    const selectSupplier = document.getElementById("form-product-supplier");
+    if (!selectSupplier) return;
+
+    try {
+        // Busca a lista atualizada de fornecedores da sua API Spring Boot
+        // Certifique-se de usar a mesma URL configurada no mapeamento de fornecedores
+        const response = await fetch("http://localhost:8080/fornecedor");
+        if (!response.ok) throw new Error("Erro ao buscar fornecedores");
+        
+        const fornecedores = await response.json();
+
+        // Reseta o select mantendo apenas a opção padrão desabilitada
+        selectSupplier.innerHTML = '<option value="" disabled selected>Selecione um fornecedor</option>';
+
+        // Alimenta o select com os fornecedores vindos do banco de dados
+        if (fornecedores && fornecedores.length > 0) {
+            fornecedores.forEach(forn => {
+                const option = document.createElement("option");
+                option.value = forn.id; // Guarda o ID do fornecedor no valor da opção
+                option.textContent = forn.nome; // Exibe o nome na tela
+                selectSupplier.appendChild(option);
+            });
+            console.log(`${fornecedores.length} fornecedores carregados no select de produtos.`);
+        }
+    } catch (error) {
+        console.error("Falha ao carregar fornecedores no formulário de produtos:", error);
     }
 }
 
@@ -957,9 +1219,32 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Função Utilitária para o botão de Deslogar (Sair)
+// ==========================================
+//        VINCULAÇÃO E LOGOUT DO SISTEMA
+// ==========================================
+
+// Mapeia o botão de logout que adicionamos na barra lateral
+const btnLogout = document.getElementById("logout-btn");
+
 function efetuarLogout() {
-    sessionStorage.removeItem('usuarioLogado');
-    window.location.reload(); 
+    if (confirm("Deseja realmente sair do sistema?")) {
+        // 1. Limpa a sessão do navegador (O usuário continua salvo no banco do Spring Boot)
+        sessionStorage.removeItem('usuarioLogado');
+        
+        // 2. Opcional: Garante que a tela volte direto no modo de Login (evita abrir em modo cadastro)
+        isLoginMode = true; 
+
+        // 3. Recarrega a página. O DOMContentLoaded vai rodar, ver que a sessão sumiu e travar o sistema na tela de login
+        window.location.reload(); 
+    }
+}
+
+// Escuta o clique do botão de Sair
+if (btnLogout) {
+    btnLogout.addEventListener("click", (e) => {
+        e.preventDefault();
+        efetuarLogout();
+    });
 }
 
 
@@ -1044,6 +1329,11 @@ async function excluirVenda(id) {
         return false;
     }
 }
+
+// ==========================================
+//          LOGOUT DO SISTEMA
+// ==========================================
+
 
 
 

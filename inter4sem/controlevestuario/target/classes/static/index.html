@@ -118,6 +118,8 @@
                 <a href="#" data-page="movements" class="nav-link flex items-center px-4 py-3 rounded-xl transition-all hover:bg-slate-800 hover:text-white group">
                     <svg class="w-5 h-5 mr-3 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Histórico
                 </a>
+
+            
             </nav>
 
             <div class="p-4 border-t border-slate-800 bg-slate-900 dark:bg-slate-950 space-y-3">
@@ -132,6 +134,15 @@
                     <span class="dark:hidden">Modo Escuro</span><span class="hidden dark:inline">Modo Claro</span>
                 </button>
             </div>
+
+            <div class="px-4 mt-auto mb-4">
+                    <button id="logout-btn" class="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all font-medium text-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        Sair do Sistema
+                    </button>
+                </div>
         </aside>
 
         <div id="sidebar-overlay" class="fixed inset-0 bg-slate-900/60 z-40 hidden backdrop-blur-sm transition-opacity"></div>
@@ -237,15 +248,24 @@
 
         <!-- SUPPLIERS (NOVA ABA COMPLETA) -->
         <div id="suppliers-content" class="page-content">
-             <div class="flex justify-between mb-6 animate-fade-in">
+            <div class="flex justify-between mb-6 animate-fade-in">
                 <h1 class="text-2xl font-bold text-slate-800 dark:text-white">Fornecedores</h1>
                 <button id="add-supplier-btn" class="bg-cyan-600 text-white px-4 py-2 rounded-xl hover:bg-cyan-700 transition shadow-lg shadow-cyan-500/30 text-sm font-medium flex gap-2 items-center">Novo</button>
             </div>
             <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden animate-fade-in delay-100">
                 <div class="overflow-x-auto">
-                     <table class="w-full text-left">
-                        <thead class="bg-slate-50 dark:bg-slate-900 text-xs text-slate-500 uppercase"><tr class="border-b border-slate-100 dark:border-slate-700"><th class="px-6 py-4">Empresa</th><th class="px-6 py-4">CNPJ</th><th class="px-6 py-4">Contato</th><th class="px-6 py-4">Cidade/UF</th><th class="px-6 py-4 text-center w-32">Ações</th></tr></thead>
-                        <tbody id="suppliers-table-body" class="divide-y divide-slate-100 dark:divide-slate-700 text-sm dark:text-slate-300"></tbody>
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 dark:bg-slate-900 text-xs text-slate-500 uppercase">
+                            <tr class="border-b border-slate-100 dark:border-slate-700">
+                                <th class="px-6 py-4">Nome da Empresa</th>
+                                <th class="px-6 py-4">CNPJ</th>
+                                <th class="px-6 py-4">Telefone</th>
+                                <th class="px-6 py-4">E-mail</th>
+                                <th class="px-6 py-4 text-center w-32">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="suppliers-table-body" class="divide-y divide-slate-100 dark:divide-slate-700 text-sm dark:text-slate-300">
+                            </tbody>
                     </table>
                 </div>
             </div>
@@ -307,7 +327,7 @@
 
             <div>
                 <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Categoria</label>
-                <select id="form-product-category" required class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none dark:text-white">
+                <select id="productCategoryInput" required class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none dark:text-white">
                     <option value="" disabled selected>Selecione uma categoria</option>
                     </select>
             </div>
@@ -374,18 +394,38 @@
 </div>
 
     <!-- Category Modal -->
-    <div id="category-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4 backdrop-blur-sm">
-        <div class="glass-panel rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-enter border border-slate-200 dark:border-slate-700">
-            <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-4">Nova Categoria</h2>
-            <form id="category-form" class="space-y-4">
-                <input id="categoryNameInput" class="w-full p-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:ring-2 focus:ring-primary-500 dark:text-white" placeholder="Nome" required>
-                <div class="flex justify-end gap-2">
-                    <button type="button" class="close-modal px-4 py-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">Cancelar</button>
-                    <button type="submit" class="px-5 py-2 bg-primary-600 text-white rounded-lg shadow active:scale-95 hover:bg-primary-700">Salvar</button>
-                </div>
-            </form>
-        </div>
+    <div id="category-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-center items-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-enter border border-slate-200 dark:border-slate-700 transform transition-all">
+        
+        <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-4">Nova Categoria</h2>
+        
+        <form id="category-form" class="space-y-4">
+            <input type="hidden" id="categoryIdInput">
+            
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                    Nome da Categoria
+                </label>
+                <input 
+                    type="text"
+                    id="categoryNameInput" 
+                    placeholder="Ex: Moletom, Camisetas..." 
+                    required 
+                    class="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-primary-500 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all"
+                >
+            </div>
+            
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" class="close-modal px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-5 py-2 text-sm font-medium bg-primary-600 text-white rounded-xl shadow-lg shadow-primary-500/20 active:scale-95 hover:bg-primary-700 transition-all">
+                    Salvar
+                </button>
+            </div>
+        </form>
     </div>
+</div>
 
     <!-- Stock Modal -->
     <div id="stock-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4 backdrop-blur-sm">
