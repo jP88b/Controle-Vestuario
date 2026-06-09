@@ -9,5 +9,4 @@ public class ControlevestuarioApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(ControlevestuarioApplication.class, args);
 	}
-
 }

@@ -5,6 +5,8 @@ const MOVIMENTACAO_API_URL = 'http://localhost:8080/movimentacao';
 const PRODUTO_API_URL      = 'http://localhost:8080/Produto';
 const USUARIO_API_URL      = 'http://localhost:8080/Usuario';
 const VENDA_API_URL        = 'http://localhost:8080/Venda';
+const DASHBOARD_API_URL    = 'http://localhost:8080/dashboard';
+const HISTORICO_API_URL    = 'http://localhost:8080/historico';
 
 // === GET: Listar Todos ===
 async function listarCategorias() {
@@ -695,7 +697,228 @@ async function excluirMovimentacao(id) {
 
 // === CONFIGURAÇÃO DE ENDPOINTS (Sem conflitos de const) ===
 
+const endpoints = {
+  categories: 'categoria',
+  suppliers: 'fornecedor',
+  products: 'Produto',
+  movements: 'Movimentacao',
+  users: 'Usuario',
+  sales: 'Venda',
+  saleItems: 'item-venda',
+  dashboard: 'dashboard',
+  historico: 'historico'
+};
 
+async function refreshDashboard() {
+    try {
+
+        const response = await fetch(`${DASHBOARD_API_URL}/kpis`);
+        const kpis = await response.json();
+
+        document.getElementById('kpi-stock-value').textContent =
+            `R$ ${(kpis.valor_total_estoque || 0).toFixed(2)}`;
+
+        document.getElementById('kpi-total-items').textContent =
+            kpis.total_itens_estoque || 0;
+
+        document.getElementById('kpi-low-stock').textContent =
+            kpis.total_estoque_critico || 0;
+
+    } catch (error) {
+        console.error("Erro ao carregar dashboard:", error);
+    }
+}
+
+
+
+async function refreshAll() {
+  try {
+    await loadAllData();
+
+    renderProducts();
+    renderCategories();
+    renderSuppliers();
+
+    await refreshDashboardFromViews();
+    await refreshHistorico();
+
+  } catch (error) {
+    console.error(error);
+    toast('Erro ao atualizar sistema', error.message, 'error');
+  }
+
+  await refreshDashboardFromViews();
+}
+
+async function refreshHistorico() {
+  try {
+    const response = await fetch(HISTORICO_API_URL);
+    const historico = await response.json();
+
+    renderAtividadeRecente(historico);
+    renderTabelaHistorico(historico);
+
+  } catch (error) {
+    console.error(error);
+    toast('Erro no histórico', error.message, 'error');
+  }
+}
+
+function renderAtividadeRecente(historico) {
+  const el = $('activityFeed');
+
+  if (!el) return;
+
+  if (!historico || historico.length === 0) {
+    el.innerHTML = empty('Nenhuma atividade recente encontrada.');
+    return;
+  }
+
+  el.innerHTML = historico.slice(0, 5).map(item => `
+    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <strong>${esc(item.acao || '')} - ${esc(item.tabela || '')}</strong>
+          <p class="text-sm text-slate-500">${esc(item.descricao || '')}</p>
+        </div>
+        <span class="text-xs text-slate-400">
+          ${formatDateTime(item.data_evento)}
+        </span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderTabelaHistorico(historico) {
+  const el = $('historyTable');
+
+  if (!el) return;
+
+  if (!historico || historico.length === 0) {
+    el.innerHTML = `
+      <tr>
+        <td colspan="5" class="p-4 text-center text-slate-500">
+          Nenhum histórico encontrado.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  el.innerHTML = historico.map(item => `
+    <tr class="border-b border-slate-100 dark:border-slate-800">
+      <td class="p-3">${formatDateTime(item.data_evento)}</td>
+      <td class="p-3">${esc(item.tabela || '')}</td>
+      <td class="p-3">${esc(item.acao || '')}</td>
+      <td class="p-3">${esc(item.descricao || '')}</td>
+      <td class="p-3">${esc(item.usuario || '')}</td>
+    </tr>
+  `).join('');
+}
+
+function formatDateTime(value) {
+  if (!value) return '-';
+
+  const date = new Date(value);
+
+  if (isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString('pt-BR');
+}
+
+async function carregarAtividadeRecente() {
+
+    try {
+
+        const response = await fetch(HISTORICO_API_URL);
+
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+        }
+
+        const atividades = await response.json();
+
+        const feed = document.getElementById('activity-feed');
+
+        if (!feed) return;
+
+        feed.innerHTML = '';
+
+        atividades.slice(0, 10).forEach(item => {
+
+            feed.innerHTML += `
+                <div class="border rounded-lg p-3">
+                    <div class="font-semibold">
+                        ${item.acao || ''}
+                    </div>
+
+                    <div class="text-sm text-slate-500">
+                        ${item.descricao || ''}
+                    </div>
+
+                    <div class="text-xs text-slate-400 mt-1">
+                        ${item.data_evento
+                            ? new Date(item.data_evento).toLocaleString('pt-BR')
+                            : ''}
+                    </div>
+                </div>
+            `;
+        });
+
+    } catch (erro) {
+        console.error('Erro ao carregar atividades:', erro);
+    }
+}
+
+async function carregarEstoqueCritico() {
+
+    try {
+
+        const response = await fetch(`${DASHBOARD_API_URL}/criticos`);
+
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+        }
+
+        const produtos = await response.json();
+
+        const tabela = document.getElementById('low-stock-table-body');
+
+        if (!tabela) return;
+
+        tabela.innerHTML = '';
+
+        produtos.forEach(produto => {
+
+            tabela.innerHTML += `
+                <tr>
+                    <td class="px-6 py-3">
+                        ${produto.produto || ''}
+                    </td>
+
+                    <td class="px-6 py-3 text-center">
+                        5
+                    </td>
+
+                    <td class="px-6 py-3 text-center">
+                        ${produto.quantidade || 0}
+                    </td>
+
+                    <td class="px-6 py-3 text-center">
+                        <span class="bg-red-100 text-red-600 px-2 py-1 rounded">
+                            ${produto.status_estoque || 'Crítico'}
+                        </span>
+                    </td>
+                </tr>
+            `;
+        });
+
+    } catch (erro) {
+        console.error('Erro ao carregar estoque crítico:', erro);
+    }
+}
 // ==========================================
 //          GERENCIAMENTO DE TELAS
 // ==========================================
@@ -827,6 +1050,9 @@ if (productForm) {
                 // Se clicou em produtos, renderiza a tabela buscando os dados do back
                 if (targetPageId === "products") {
                     carregarTelaProdutos();
+                } else if (targetPageId === "dashboard") {
+                    // 🔥 ESSA FUNÇÃO PRECISA EXISTIR NO SEU JS PARA CHAMAR O /dashboard/kpis
+                    carregarDadosDashboard(); 
                 }
             }
         });
@@ -895,32 +1121,37 @@ async function carregarTelaProdutos() {
     const tabelaBody = document.getElementById("products-table-body");
     if (!tabelaBody) return;
 
-    tabelaBody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center text-slate-500">Carregando produtos...</td></tr>`;
+    // 🔥 IMPORTANTE: Alterado de colspan="6" para "7" para acompanhar a nova coluna
+    tabelaBody.innerHTML = `<tr><td colspan="7" class="px-6 py-4 text-center text-slate-500">Carregando produtos...</td></tr>`;
 
     const produtos = await listarProdutos();
     tabelaBody.innerHTML = ""; 
 
     if (!produtos || produtos.length === 0) {
-        tabelaBody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center text-slate-500">Nenhum produto cadastrado.</td></tr>`;
+        tabelaBody.innerHTML = `<tr><td colspan="7" class="px-6 py-4 text-center text-slate-500">Nenhum produto cadastrado.</td></tr>`;
         return;
     }
 
     produtos.forEach(prod => {
-        // Formatações de exibição
+        // Formatações de exibição de valores monetários
         const precoVenda = prod.precoVenda ? `R$ ${prod.precoVenda.toFixed(2).replace('.', ',')}` : 'R$ 0,00';
+        
+        // 🔥 NOVA FORMATAÇÃO: Alinhado com o campo vindo do banco do backend
+        const precoCusto = prod.precoCusto ? `R$ ${prod.precoCusto.toFixed(2).replace('.', ',')}` : 'R$ 0,00';
+        
         const statusClass = prod.quantidade > 5 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700';
         const statusTexto = prod.quantidade > 5 ? 'Em Estoque' : 'Baixo Estoque';
 
-        // 🔥 TRANSFORMA O OBJETO DO PRODUTO ATUAL EM STRING PARA ENVIAR PARA O MODAL
         const produtoJson = JSON.stringify(prod).replace(/"/g, '&quot;');
 
-        // Injeta a linha inteira de uma vez só no HTML da tabela
+        // Injeta a linha com a nova célula correspondente ao Preço de Custo
         tabelaBody.innerHTML += `
             <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                 <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${prod.nome || 'Sem nome'}</td>
                 <td class="px-6 py-4">${prod.fornecedor?.nome || 'Não atribuído'}</td>
                 <td class="px-6 py-4 text-center">${prod.quantidade || 0}</td>
-                <td class="px-6 py-4 text-right">${precoVenda}</td>
+                <td class="px-6 py-4 text-right text-slate-500 dark:text-slate-400">${precoCusto}</td>
+                <td class="px-6 py-4 text-right font-medium">${precoVenda}</td>
                 <td class="px-6 py-4 text-center">
                     <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusClass}">${statusTexto}</span>
                 </td>
@@ -1272,7 +1503,12 @@ function liberarAcessoAoSistema(usuario) {
 }
 
 // Monitora se o usuário já estava logado antes
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+
+    await refreshDashboard();
+    await carregarAtividadeRecente();
+    await carregarEstoqueCritico();
+
     const sessaoAtiva = sessionStorage.getItem('usuarioLogado');
     
     if (sessaoAtiva) {
