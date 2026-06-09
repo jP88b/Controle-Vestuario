@@ -848,6 +848,49 @@ async function listarProdutos() {
     }
 }
 
+function prepararEdicao(produtoJsonEscapado) {
+    try {
+        // Converte a string de volta para um objeto JavaScript
+        const produto = JSON.parse(produtoJsonEscapado.replace(/&quot;/g, '"'));
+
+        // 1. Preenche os inputs ocultos e visíveis
+        document.getElementById("product-id").value = produto.id;
+        document.getElementById("form-product-name").value = produto.nome;
+        document.getElementById("form-product-qty").value = produto.quantidade;
+        document.getElementById("form-product-price").value = produto.precoVenda;
+
+        // 2. Garante que os selects de Categorias e Fornecedores estejam carregados
+        // Nota: se essas funções forem assíncronas, o ideal é que já tenham rodado na página
+        if (typeof atualizarSelectFornecedores === "function") atualizarSelectFornecedores();
+        if (typeof atualizarSelectCategorias === "function") atualizarSelectCategorias();
+
+        // 3. Seleciona o ID correto dentro dos <select> do HTML
+        if (produto.categoria && produto.categoria.id) {
+            const selectCat = document.getElementById("productCategoryInput");
+            if (selectCat) selectCat.value = produto.categoria.id;
+        }
+        
+        if (produto.fornecedor && produto.fornecedor.id) {
+            const selectForn = document.getElementById("form-product-supplier");
+            if (selectForn) selectForn.value = produto.fornecedor.id;
+        }
+
+        // 4. Muda o título do modal e exibe na tela
+        document.getElementById("modal-title").innerText = `Editar Produto: ${produto.nome}`;
+        
+        const productModal = document.getElementById("product-modal");
+        if (productModal) {
+            productModal.classList.remove("hidden");
+        }
+
+    } catch (error) {
+        console.error("Erro ao processar dados para edição:", error);
+    }
+}
+
+// Expõe para o escopo global do HTML
+window.prepararEdicao = prepararEdicao;
+
 async function carregarTelaProdutos() {
     const tabelaBody = document.getElementById("products-table-body");
     if (!tabelaBody) return;
@@ -863,10 +906,15 @@ async function carregarTelaProdutos() {
     }
 
     produtos.forEach(prod => {
-        const precoVenda = prod.precoVenda ? `R$ ${prod.precoVenda.toFixed(2)}` : 'R$ 0,00';
+        // Formatações de exibição
+        const precoVenda = prod.precoVenda ? `R$ ${prod.precoVenda.toFixed(2).replace('.', ',')}` : 'R$ 0,00';
         const statusClass = prod.quantidade > 5 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700';
         const statusTexto = prod.quantidade > 5 ? 'Em Estoque' : 'Baixo Estoque';
 
+        // 🔥 TRANSFORMA O OBJETO DO PRODUTO ATUAL EM STRING PARA ENVIAR PARA O MODAL
+        const produtoJson = JSON.stringify(prod).replace(/"/g, '&quot;');
+
+        // Injeta a linha inteira de uma vez só no HTML da tabela
         tabelaBody.innerHTML += `
             <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                 <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${prod.nome || 'Sem nome'}</td>
@@ -876,9 +924,13 @@ async function carregarTelaProdutos() {
                 <td class="px-6 py-4 text-center">
                     <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusClass}">${statusTexto}</span>
                 </td>
-                <td class="px-6 py-4 text-center space-x-2">
-                    <button onclick="prepararEdicao(${prod.id})" class="text-primary-600 hover:text-primary-900 dark:hover:text-primary-400">Editar</button>
-                    <button onclick="deletarProdutoFluxo(${prod.id})" class="text-red-600 hover:text-red-900">Excluir</button>
+                <td class="px-6 py-4 text-center space-x-3">
+                    <button onclick="prepararEdicao('${produtoJson}')" class="text-blue-600 hover:text-blue-900 font-medium dark:hover:text-blue-400">
+                        Editar
+                    </button>
+                    <button onclick="deletarProdutoFluxo(${prod.id})" class="text-red-600 hover:text-red-900 font-medium">
+                        Excluir
+                    </button>
                 </td>
             </tr>
         `;
@@ -913,15 +965,30 @@ async function editarProduto(id, produtoAtualizado) {
     }
 }
 
-async function excluirProduto(id) {
+async function deletarProdutoFluxo(id) {
+    if (!confirm("Tem certeza que deseja excluir este produto?")) return;
+
     try {
         const response = await fetch(`${PRODUTO_API_URL}/${id}`, { method: 'DELETE' });
-        return response.status === 204 || response.status === 200;
+        
+        // Aceita 200, 204 ou 201 como respostas válidas de sucesso do backend
+        if (response.status === 204 || response.status === 200 || response.status === 201) {
+            alert("Produto excluído com sucesso!");
+            
+            // 🔥 CORREÇÃO 1: Atualiza a tabela na tela imediatamente após deletar
+            carregarTelaProdutos(); 
+        } else {
+            alert(`Erro ao tentar excluir o produto. Status: ${response.status}`);
+        }
     } catch (error) {
         console.error("Erro no DELETE de Produtos:", error);
-        return false;
+        alert("Erro de conexão ao tentar excluir.");
     }
 }
+
+// 🔥 CORREÇÃO 2: Expõe a função para o escopo global (torna o onclick do HTML capaz de encontrá-la)
+window.deletarProdutoFluxo = deletarProdutoFluxo;
+
 
 // ========================================================
 // PREENCHIMENTO DINÂMICO DE CATEGORIAS NO PRODUTO
