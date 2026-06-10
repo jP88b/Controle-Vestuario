@@ -14,18 +14,14 @@ public class DashboardService {
     private final JdbcTemplate jdbcTemplate;
 
     public Map<String, Object> buscarKpis() {
-        try {
-            return jdbcTemplate.queryForMap("""
-                SELECT 
-                    total_produtos,
-                    total_itens_estoque,
-                    valor_total_estoque,
-                    total_estoque_critico
-                FROM vw_dashboard_kpis
-            """);
-        } catch (Exception e) {
-            return Map.of(); // Retorna mapa vazio caso dê erro ou a view esteja sem dados
-        }
+    return jdbcTemplate.queryForMap("""
+        SELECT 
+            total_produtos,
+            total_itens_estoque,
+            valor_total_estoque,
+            total_estoque_critico
+        FROM vw_dashboard_kpis
+    """);
     }
 
     public List<Map<String, Object>> buscarProdutosPorCategoria() {

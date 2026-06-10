@@ -782,7 +782,7 @@ function renderAtividadeRecente(historico) {
           <p class="text-sm text-slate-500">${esc(item.descricao || '')}</p>
         </div>
         <span class="text-xs text-slate-400">
-          ${formatDateTime(item.data_evento)}
+          ${formatDateTime(item.dataEvento)}
         </span>
       </div>
     </div>
@@ -807,7 +807,7 @@ function renderTabelaHistorico(historico) {
 
   el.innerHTML = historico.map(item => `
     <tr class="border-b border-slate-100 dark:border-slate-800">
-      <td class="p-3">${formatDateTime(item.data_evento)}</td>
+      <td class="p-3">${formatDateTime(item.dataEvento)}</td>
       <td class="p-3">${esc(item.tabela || '')}</td>
       <td class="p-3">${esc(item.acao || '')}</td>
       <td class="p-3">${esc(item.descricao || '')}</td>
@@ -859,8 +859,8 @@ async function carregarAtividadeRecente() {
                     </div>
 
                     <div class="text-xs text-slate-400 mt-1">
-                        ${item.data_evento
-                            ? new Date(item.data_evento).toLocaleString('pt-BR')
+                        ${item.dataEvento
+                            ? new Date(item.dataEvento).toLocaleString('pt-BR')
                             : ''}
                     </div>
                 </div>
@@ -1051,13 +1051,69 @@ if (productForm) {
                 if (targetPageId === "products") {
                     carregarTelaProdutos();
                 } else if (targetPageId === "dashboard") {
-                    // 🔥 ESSA FUNÇÃO PRECISA EXISTIR NO SEU JS PARA CHAMAR O /dashboard/kpis
-                    carregarDadosDashboard(); 
+                    refreshDashboard();
+                    carregarAtividadeRecente();
+                    carregarEstoqueCritico();
+                } else if (targetPageId === "movements") {
+                    carregarHistoricoSistema();
                 }
             }
         });
     });
 });
+
+async function carregarHistoricoSistema() {
+    try {
+        const response = await fetch(HISTORICO_API_URL);
+
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+        }
+
+        const historico = await response.json();
+        const tabela = document.getElementById('movements-table-body');
+
+        if (!tabela) return;
+
+        tabela.innerHTML = '';
+
+        if (!historico || historico.length === 0) {
+            tabela.innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-6 py-4 text-center text-slate-400">
+                        Nenhum histórico encontrado.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        historico.forEach(item => {
+            tabela.innerHTML += `
+                <tr>
+                    <td class="px-6 py-3">
+                        ${item.dataEvento ? new Date(item.dataEvento).toLocaleString('pt-BR') : '-'}
+                    </td>
+                    <td class="px-6 py-3">
+                        ${item.tabela || '-'}
+                    </td>
+                    <td class="px-6 py-3">
+                        ${item.acao || '-'}
+                    </td>
+                    <td class="px-6 py-3">
+                        ${item.descricao || '-'}
+                    </td>
+                    <td class="px-6 py-3">
+                        ${item.usuario || '-'}
+                    </td>
+                </tr>
+            `;
+        });
+
+    } catch (erro) {
+        console.error('Erro ao carregar histórico:', erro);
+    }
+}
 
 // ==========================================
 //       FUNÇÕES DE PRODUTO (Limpas)
