@@ -4,7 +4,7 @@ const ITEM_VENDA_API_URL   = 'http://localhost:8080/item-venda';
 const MOVIMENTACAO_API_URL = 'http://localhost:8080/movimentacao';
 const PRODUTO_API_URL      = 'http://localhost:8080/Produto';
 const USUARIO_API_URL      = 'http://localhost:8080/Usuario';
-const VENDA_API_URL        = 'http://localhost:8080/Venda';
+const VENDA_API_URL        = 'http://localhost:8080/Venda/realizar';
 const DASHBOARD_API_URL    = 'http://localhost:8080/dashboard';
 const HISTORICO_API_URL    = 'http://localhost:8080/historico';
 

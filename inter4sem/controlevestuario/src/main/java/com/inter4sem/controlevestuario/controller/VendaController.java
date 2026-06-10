@@ -3,6 +3,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,12 +16,16 @@ import lombok.RequiredArgsConstructor;
 import com.inter4sem.controlevestuario.entity.VendaEntity;
 import com.inter4sem.controlevestuario.repository.VendaRepository;
 import com.inter4sem.controlevestuario.service.VendaService;
+import org.springframework.jdbc.core.JdbcTemplate;
+import java.util.Map;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(value = "/Venda")
 public class VendaController {
-private final VendaRepository VendaRepository;
-private final VendaService VendaService;
+    private final VendaRepository VendaRepository;
+    private final VendaService VendaService;
+    private final JdbcTemplate jdbcTemplate;
 
     @GetMapping
     public ResponseEntity<List<VendaEntity>> listarTodos() {
@@ -28,15 +33,16 @@ private final VendaService VendaService;
         return ResponseEntity.ok().body(lista);
     }
 
-    @PostMapping
-    public ResponseEntity<VendaEntity> incluir(@RequestBody 
-    VendaEntity Venda) {
-        VendaEntity novo = VendaService.incluir(Venda);
-        if (novo != null) {
-            return new ResponseEntity<>(novo, HttpStatus.CREATED);
-        } else {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
+    @PostMapping("/realizar")
+    public ResponseEntity<?> realizarVenda(@RequestBody VendaRequest request) {
+        Map<String, Object> resultado = jdbcTemplate.queryForMap(
+            "EXEC sp_realizar_venda_transacional ?, ?, ?",
+            request.getIdproduto(),
+            request.getIdusuario(),
+            request.getQuantidade()
+        );
+
+        return ResponseEntity.ok(resultado);
     }
 
     @PutMapping("/{id}")
