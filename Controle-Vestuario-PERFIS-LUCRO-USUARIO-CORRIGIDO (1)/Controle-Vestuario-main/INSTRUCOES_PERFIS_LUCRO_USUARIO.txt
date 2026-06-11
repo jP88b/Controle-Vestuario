@@ -1,0 +1,33 @@
+CORREÇÕES DESTA VERSÃO
+
+1) Lucro estimado
+- DashboardService agora lê custo_total_estoque e lucro_potencial_estoque da view vw_dashboard_kpis.
+- app.js atualiza kpi-profit e kpi-margin na tela.
+- A view vw_dashboard_kpis foi recriada no SQL seguro.
+
+2) Perfis de usuário
+- Cadastro de usuário agora tem perfil: FUNCIONARIO, GERENTE ou ADMINISTRADOR.
+- FUNCIONARIO: lançamento somente ENTRADA, não edita produto, não remove produto e não vê histórico.
+- GERENTE: lançamento ENTRADA/SAIDA, adiciona/edita produto, não remove produto e não vê histórico.
+- ADMINISTRADOR: acesso completo.
+
+3) Logs com usuário do sistema
+- As requisições enviam X-Usuario-Sistema e X-Perfil-Usuario.
+- Services de produto, categoria e fornecedor gravam o usuário na sessão do SQL antes do INSERT/UPDATE/DELETE.
+- Triggers usam SESSION_CONTEXT('usuario_sistema') e só caem para SYSTEM_USER se o sistema não enviar usuário.
+
+4) SQL que deve ser rodado no banco já existente
+- Rode primeiro: ATUALIZACAO_SEGURA_PERFIS_LUCRO_USUARIO.sql
+- Esse script não apaga dados.
+
+TESTES RÁPIDOS
+
+SELECT * FROM vw_dashboard_kpis;
+SELECT TOP 10 * FROM vw_powerbi_estoque;
+SELECT TOP 10 * FROM vw_powerbi_lancamentos;
+SELECT TOP 20 * FROM HistoricoSistema ORDER BY id DESC;
+
+No sistema:
+- Criar usuário FUNCIONARIO e confirmar que só aparece ENTRADA no lançamento.
+- Criar usuário GERENTE e confirmar que pode editar/cadastrar produto, mas não remover e não ver histórico.
+- Criar usuário ADMINISTRADOR e confirmar acesso total.

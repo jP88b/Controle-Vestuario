@@ -1,0 +1,31 @@
+Correções feitas nesta versão
+
+1. Categorias
+- A aba Categorias agora carrega a listagem assim que o sistema abre.
+- Também carrega novamente quando o usuário clica no menu Categorias.
+- Não foi alterado o cadastro, edição ou exclusão que já estava funcionando.
+
+2. Relatórios BI
+- Reforcei a função carregarRelatoriosBI no app.js.
+- Os gráficos agora aceitam nomes de campos em formatos diferentes, por exemplo: categoria, CATEGORIA, preco_venda, precoVenda.
+- O gráfico financeiro agora usa o estoque atual como base principal, então ele não fica zerado quando só existem entradas e ainda não existem saídas/vendas.
+- Se a view de BI vier vazia por algum motivo, o sistema tenta usar a API de produtos como plano B para não deixar o gráfico em branco.
+
+3. SQL
+- Foi criado o script ATUALIZACAO_SEGURA_BI_CATEGORIAS_COMENTADO.sql.
+- Ele não apaga dados e não recria tabelas.
+- Ele só atualiza as views usadas pelos relatórios BI.
+- O script foi comentado de forma simples explicando o que cada view faz.
+
+Ordem recomendada
+1. Substituir o projeto por esta versão.
+2. Rodar no SQL Server o arquivo ATUALIZACAO_SEGURA_BI_CATEGORIAS_COMENTADO.sql.
+3. Subir o Spring Boot.
+4. Testar:
+   - Aba Categorias
+   - Aba Relatórios BI
+   - Lançamentos
+   - Backup/exportação/importação
+
+Observação
+Não mexi nas regras de backup e lançamento porque você avisou que essas partes já estão funcionando.

@@ -1,0 +1,73 @@
+CORREÇÕES FEITAS COM CUIDADO PARA NÃO QUEBRAR O QUE JÁ FUNCIONA
+
+1) NÃO ALTEREI os dados de conexão do application.properties. Mantive servidor/usuário/senha como estavam no pacote e alterei apenas ddl-auto para none.
+   Motivo: create-drop apaga/recria estruturas e pode derrubar views, triggers, procedures e function.
+
+2) Produtos agora possuem preço de custo e preço de venda no Java e no SQL:
+   - ProdutoEntity.precoCusto -> coluna produtos.preco_custo
+   - ProdutoEntity.precoVenda -> coluna produtos.preco_venda
+
+3) Foi criado fluxo de Lançamento de Estoque:
+   Tela Produtos -> botão Lançamento
+   O usuário seleciona:
+   - Entrada ou Saída
+   - Produto
+   - Quantidade
+   - Custo atual
+   - Valor de venda atual
+
+4) O lançamento chama o endpoint:
+   POST /movimentacao/lancar
+   Esse endpoint chama a procedure:
+   sp_registrar_lancamento_estoque
+
+5) A procedure faz transação:
+   - valida tipo, produto e quantidade
+   - valida estoque em caso de saída
+   - atualiza estoque
+   - atualiza custo/venda do produto
+   - grava movimentação
+   - a trigger grava o histórico automaticamente
+
+6) Relatórios BI:
+   Criei RelatorioController com endpoints:
+   GET /relatorios/powerbi-estoque
+   GET /relatorios/powerbi-vendas
+   GET /relatorios/powerbi-movimentacoes
+   GET /relatorios/powerbi-lancamentos
+   GET /relatorios/produtos-gerencial
+
+7) Front-end da aba Relatórios BI:
+   A aba agora carrega dados reais das views e renderiza os gráficos Chart.js.
+
+8) SQL:
+   - ScriptDoBanco.sql: recria banco/tabelas/views/procedures/triggers/functions para ambiente limpo.
+   - ATUALIZACAO_SEGURA_BI_LANCAMENTO.sql: use este se quiser preservar dados existentes.
+
+ORDEM RECOMENDADA PARA TESTE:
+1. Faça backup do banco atual.
+2. Rode ATUALIZACAO_SEGURA_BI_LANCAMENTO.sql no banco ControleVestuario.
+3. Suba o Spring Boot.
+4. Teste:
+   GET  http://localhost:8080/dashboard/kpis
+   GET  http://localhost:8080/relatorios/powerbi-estoque
+   GET  http://localhost:8080/relatorios/powerbi-lancamentos
+   POST http://localhost:8080/movimentacao/lancar
+
+JSON de teste para lançamento:
+{
+  "idproduto": 1,
+  "tipo": "ENTRADA",
+  "quantidade": 2,
+  "precoCusto": 50.00,
+  "precoVenda": 99.90
+}
+
+Para saída:
+{
+  "idproduto": 1,
+  "tipo": "SAIDA",
+  "quantidade": 1,
+  "precoCusto": 50.00,
+  "precoVenda": 99.90
+}

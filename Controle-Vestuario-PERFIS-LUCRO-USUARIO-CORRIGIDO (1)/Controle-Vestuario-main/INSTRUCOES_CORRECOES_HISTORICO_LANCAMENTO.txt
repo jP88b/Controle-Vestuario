@@ -1,0 +1,27 @@
+CORREÇÕES APLICADAS - HISTÓRICO DELETE + LANÇAMENTO
+
+1) Produto deletado agora aparece no histórico e nas atividades recentes.
+   - SQL: trigger trg_produto_historico agora trata INSERT, UPDATE e DELETE.
+   - Java: histórico agora lista por ID decrescente, mostrando os eventos mais recentes primeiro.
+   - JS: ao excluir produto, a tela atualiza produtos, dashboard, estoque crítico, BI e histórico.
+
+2) Botão Lançamento mantido e reforçado.
+   - HTML: botão Lançamento na tela Produtos.
+   - Modal permite escolher produto, ENTRADA/SAIDA, quantidade, custo e venda.
+   - JS valida quantidade inteira > 0 e impede custo/venda negativos.
+   - Java valida novamente no backend.
+   - SQL procedure sp_registrar_lancamento_estoque também rejeita negativos.
+
+3) O que rodar no banco atual:
+   - Rode primeiro ATUALIZACAO_SEGURA_HISTORICO_DELETE_LANCAMENTO.sql.
+   - Esse script NÃO apaga dados.
+   - Ele corrige trigger, procedure e view de atividade recente.
+
+4) Testes rápidos:
+   - Exclua um produto sem vínculo em movimentações/vendas.
+   - Abra Histórico: deve aparecer ação DELETE.
+   - Faça um lançamento com quantidade negativa: deve ser bloqueado.
+   - Faça lançamento de ENTRADA válido: deve atualizar estoque, histórico e BI.
+
+Observação importante:
+   Se o produto já estiver vinculado a movimentações ou vendas, o SQL Server pode impedir a exclusão por chave estrangeira. Nesse caso, não é erro do histórico: o produto não foi realmente excluído.
